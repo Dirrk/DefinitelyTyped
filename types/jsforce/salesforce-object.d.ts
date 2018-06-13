@@ -7,6 +7,7 @@ import { Record, RecordReference } from './record';
 import { RecordResult } from './record-result';
 import { Connection } from './connection';
 import { SalesforceId } from './salesforce-id';
+import { Batch, BatchResultInfo } from './batch';
 
 export class SObject<T> {
     record(id: SalesforceId): RecordReference<T>;
@@ -17,9 +18,6 @@ export class SObject<T> {
     upsert(records: Record<T>, extIdField: SalesforceId, options?: Object, callback?: (err: Error, ret: RecordResult) => void): Promise<RecordResult>;
     upsert(records: Array<Record<T>>, extIdField: SalesforceId, options?: Object, callback?: (err: Error, ret: RecordResult[]) => void): Promise<RecordResult[]>;
     upsertBulk(input?: Array<Record<T>> | stream.Stream | string, callback?: (err: Error, ret: RecordResult[] | BatchResultInfo[]) => void): Batch;
-    describeGlobal(callback: (err: Error, res: any) => void): void;
-    describe$(callback: (err: Error, ret: DescribeSObjectResult) => void): void;
-    describeGlobal$(callback: (err: Error, res: any) => void): void;
 
     find<T>(query?: any, callback?: (err: Error, ret: T[]) => void): Query<T>;
     find<T>(query?: any, fields?: Object | string[] | string, callback?: (err: Error, ret: T[]) => void): Query<T>;
@@ -29,8 +27,18 @@ export class SObject<T> {
     findOne<T>(query?: any, fields?: Object | string[] | string, callback?: (err: Error, ret: T) => void): Query<T>;
     findOne<T>(query?: any, fields?: Object | string[] | string, options?: Object, callback?: (err: Error, ret: T) => void): Query<T>;
 
+    approvalLayouts$: {
+        /** Returns a value from the cache if it exists, otherwise calls SObject.approvalLayouts */
+        (callback?: (layoutInfo: ApprovalLayoutInfo) => void): ApprovalLayoutInfo;
+        clear(): void;
+    }
     approvalLayouts(callback?: (layoutInfo: ApprovalLayoutInfo) => void): Promise<ApprovalLayoutInfo>;
     bulkload(operation: string, options?: { extIdField?: string }, input?: Array<Record<T>> | stream.Stream[] | string[], callback?: (err: Error, ret: RecordResult) => void): Batch;
+    compactLayouts$: {
+        /** Returns a value from the cache if it exists, otherwise calls SObject.compactLayouts */
+        (callback?: CompactLayoutInfo): CompactLayoutInfo;
+        clear(): void;
+    }
     compactLayouts(callback?: CompactLayoutInfo): Promise<CompactLayoutInfo>;
     count(conditions?: Object | string, callback?: (err: Error, num: number) => void): Promise<number>;
     create(options: any | any[], callback?: (err: Error, ret: RecordResult | RecordResult[]) => void): Promise<RecordResult | RecordResult[]>;
@@ -44,24 +52,31 @@ export class SObject<T> {
     deleted(start: Date | string, end: Date | string, callback?: (info: DeletedRecordsInfo) => void): Promise<DeletedRecordsInfo>;
     deleteHardBulk(input?: Array<Record<T>> | stream.Stream | string, callback?: (err: Error, ret: RecordResult) => void): Batch;
     describe(callback?: (err: Error, ret: DescribeSObjectResult) => void): Promise<DescribeSObjectResult>;
+    describe$: {
+        /** Returns a value from the cache if it exists, otherwise calls SObject.describe */
+        (callback?: (err: Error, ret: DescribeSObjectResult) => void): DescribeSObjectResult;
+        clear(): void;
+    }
     insert(options: any | any[], callback?: (err: Error, ret: RecordResult | RecordResult[]) => void): Promise<RecordResult | RecordResult[]>;
     insertBulk(input?: Array<Record<T>> | stream.Stream | string, callback?: (err: Error, ret: RecordResult) => void): Batch;
+    /** Returns a value from the cache if it exists, otherwise calls SObject.layouts */
+    layouts$: {
+        (layoutName?: string, callback?: (err: Error, info: LayoutInfo) => void): LayoutInfo;
+        clear(): void;
+    }
     layouts(layoutName?: string, callback?: (err: Error, info: LayoutInfo) => void): Promise<LayoutInfo>;
     listview(id: string): ListView;
     listviews(callback?: (err: Error, info: ListViewsInfo) => void): Promise<ListViewsInfo>;
     quickAction(actionName: string): QuickAction;
     quickActions(callback?: (err: Error, info: any) => void): Promise<any>;
     recent(callback?: (err: Error, ret: RecordResult) => void): Promise<RecordResult>;
-    select(callback?: (err: Error, ret: T[]) => void): Promise<T[]>;
+    select(callback?: (err: Error, ret: T[]) => void): Query<T[]>;
     // TODO:use a typed pluck to turn `fields` into a subset of T's fields so that the output is slimmed down appropriately
-    select(fields?: {[P in keyof T]: boolean}  | Array<(keyof T)> | (keyof T), callback?: (err: Error, ret: Array<Partial<T>>) => void): Promise<Array<Partial<T>>>;
+    select(fields?: {[P in keyof T]: boolean}  | Array<(keyof T)> | (keyof T), callback?: (err: Error, ret: Array<Partial<T>>) => void): Query<Array<Partial<T>>>;
 }
 
 export interface ApprovalLayoutInfo {
     approvalLayouts: Object[];
-}
-
-export class Batch extends stream.Writable {
 }
 
 export interface CompactLayoutInfo {
@@ -86,19 +101,6 @@ export interface LayoutInfo {
 
 export class ListView {
     constructor(connection: Connection, type: string, id: SalesforceId)
-}
-
-export interface BatchInfo {
-    id: string;
-    jobId: string;
-    state: string;
-    stateMessage: string;
-}
-
-export interface BatchResultInfo {
-    id: string;
-    batchId: string;
-    jobId: string;
 }
 
 export class ListViewsInfo { }

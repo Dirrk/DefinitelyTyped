@@ -1,4 +1,4 @@
-import { Chart, ChartData } from 'chart.js';
+import { Chart, ChartData, Point } from 'chart.js';
 
 // alternative:
 // import chartjs = require('chart.js');
@@ -21,6 +21,12 @@ const chart: Chart = new Chart(new CanvasRenderingContext2D(), {
         hover: {
             intersect: true
         },
+        onHover(ev: MouseEvent, points: any[]) {
+          return;
+        },
+        title: {
+            text: ["foo", "bar"]
+        },
         tooltips: {
             filter: data => Number(data.yLabel) > 0,
             intersect: true,
@@ -36,9 +42,23 @@ const chart: Chart = new Chart(new CanvasRenderingContext2D(), {
                 ticks: {
                     callback: Math.floor
                 },
-                gridLines: { display: false }
+                gridLines: {
+                    display: false,
+                    borderDash: [5, 15],
+                    borderDashOffset: 2,
+                    zeroLineBorderDash: [5, 15],
+                    zeroLineBorderDashOffset: 2
+                }
             }]
-        }
+        },
+        legend: {
+            display: true,
+            labels: {
+                usePointStyle: true,
+                padding: 40
+            }
+        },
+        devicePixelRatio: 2,
     }
 });
 chart.update();
@@ -51,3 +71,11 @@ if (chart.chartArea) {
     console.log(chart.chartArea.bottom);
     console.log(chart.chartArea.left);
 }
+
+// http://www.chartjs.org/docs/latest/configuration/tooltip.html#position-modes
+Chart.Tooltip.positioners.custom = (elements: any[], eventPosition: Point) => {
+    return {
+        x: eventPosition.x,
+        y: eventPosition.y + 10
+    };
+};

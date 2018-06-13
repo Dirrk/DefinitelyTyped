@@ -10,6 +10,10 @@ declare const $: any;
 // Tests based on the Jest website
 jest.unmock('../sum');
 
+class TestClass { }
+
+describe(TestClass, () => { });
+
 describe('sum', () => {
     it('adds 1 + 2 to equal 3', () => {
         const sum: (a: number, b: number) => number = require('../sum');
@@ -199,11 +203,18 @@ describe('Assymetric matchers', () => {
     it('works', () => {
         expect({
             timestamp: 1480807810388,
-            text: 'Some text content, but we care only about *this part*'
+            text: 'Some text content, but we care only about *this part*',
+            color: '#bada55',
+            greeting: 'hello, world!',
         }).toEqual({
             timestamp: expect.any(Number),
-            text: expect.stringMatching('*this part*')
+            text: expect.stringMatching('*this part*'),
+            color: expect.stringMatching(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i),
+            greeting: expect.stringContaining('hello'),
         });
+
+        expect("foo").toStrictEqual("foo");
+        expect({ a: "foo" }).toStrictEqual({ a: "foo" });
 
         const callback = jest.fn();
         expect(callback).toEqual(expect.any(Function));
@@ -235,6 +246,37 @@ describe('Assymetric matchers', () => {
     });
 });
 
+describe('setTimeout', () => {
+    it('works as expected', done => {
+        jest.setTimeout(1000);
+
+        setTimeout(() => {
+            expect(true).toBeTruthy();
+            done();
+        }, 900);
+    });
+});
+
+describe("spy call matchers", () => {
+    const spy = jest.fn();
+
+    expect(spy).lastReturnedWith("foo");
+    expect(spy).nthReturnedWith(3, "foo");
+    expect(spy).toHaveBeenCalled();
+    expect(spy).toHaveBeenCalledTimes(7);
+    expect(spy).toHaveBeenCalledWith("foo");
+    expect(spy).toHaveBeenLastCalledWith("foo");
+    expect(spy).toHaveBeenNthCalledWith(3, "foo");
+    expect(spy).toHaveReturned();
+    expect(spy).toHaveReturnedTimes(7);
+    expect(spy).toHaveReturnedWith("foo");
+    expect(spy).toHaveLastReturnedWith("foo");
+    expect(spy).toHaveNthReturnedWith(3, "foo");
+    expect(spy).toReturn();
+    expect(spy).toReturnTimes(3);
+    expect(spy).toReturnWith("foo");
+});
+
 describe('Extending extend', () => {
     it('works', () => {
         expect.extend({
@@ -242,6 +284,12 @@ describe('Extending extend', () => {
                 const pass = received === actual;
                 const message =
                     () => `expected ${received} ${pass ? 'not ' : ''} to be ${actual}`;
+                return { message, pass };
+            },
+            toBeVariadicMatcher(received: any, floor: number, ceiling: number) {
+                const pass = received >= floor && received <= ceiling;
+                const message =
+                    () => `expected ${received} ${pass ? 'not ' : ''} to be within range ${floor}-${ceiling}`;
                 return { message, pass };
             },
             toBeTest(received: any, actual: any) {
@@ -267,7 +315,7 @@ describe('missing tests', () => {
        class Closure<T> {
            private arg: T;
 
-           constructor(private fn: (arg: T) => void) {
+           constructor(private readonly fn: (arg: T) => void) {
                this.fn = fn;
            }
 
@@ -288,9 +336,9 @@ describe('missing tests', () => {
        expect(spy).lastCalledWith('jest');
        expect(spy).toBeCalledWith('jest');
        expect(jest.isMockFunction(spy)).toBeTruthy();
-   });
+    });
 
-    it('tests all mising Mocks functionality', () => {
+    it('tests all missing Mocks functionality', () => {
        type FruitsGetter = () => string[];
        const mock: jest.Mock<FruitsGetter> = jest.fn<FruitsGetter>();
        mock.mockImplementationOnce(() => ['Orange', 'Apple', 'Plum']);
@@ -307,32 +355,72 @@ describe('missing tests', () => {
        expect(thisMock()).toBe(this);
    });
 
+    it('async test with mockResolvedValue and mockResolvedValueOnce', async () => {
+      const asyncMock = jest
+        .fn()
+        .mockResolvedValue('default')
+        .mockResolvedValueOnce('first call')
+        .mockResolvedValueOnce('second call');
+
+      await asyncMock(); // first call
+      await asyncMock(); // second call
+      await asyncMock(); // default
+      await asyncMock(); // default
+    });
+
+    it('async test with mockRejectedValue', async () => {
+      const asyncMock = jest.fn().mockRejectedValue(new Error('Async error'));
+
+      await asyncMock(); // throws "Async error"
+    });
+
+    it('async test with mockResolvedValueOnce and mockRejectedValueOnce', async () => {
+      const asyncMock = jest
+        .fn()
+        .mockResolvedValueOnce('first call')
+        .mockRejectedValueOnce(new Error('Async error'));
+
+      await asyncMock(); // first call
+      await asyncMock(); // throws "Async error"
+    });
+
+    it('tests mock name functionality', () => {
+        const mock: jest.Mock = jest.fn();
+        mock.mockName('Carrot');
+        expect(mock.getMockName()).toBe('Carrot');
+    });
+
+    it('tests mock name functionality', () => {
+        const mock = spyOn(console, 'warn');
+        expect(mock).toHaveBeenCalled();
+    });
+
     it('creates snapshoter', () => {
        jest.disableAutomock().mock('./render', () => jest.fn((): string => "{Link to: \"facebook\"}"), { virtual: true });
        const render: () => string = require('./render');
        expect(render()).toMatch(/Link/);
        jest.enableAutomock();
-   });
+    });
 
     it('runs only pending timers', () => {
         jest.useRealTimers();
         setTimeout(() => expect(1).not.toEqual(0), 3000);
         jest.runOnlyPendingTimers().runTimersToTime(300);
-   });
+    });
 
     it('runs all timers', () => {
         jest.clearAllTimers();
         jest.useFakeTimers();
         setTimeout(() => expect(0).not.toEqual(1), 3000);
         jest.runAllTimers();
-   });
+    });
 
     it('cleares cache', () => {
        const sum1 = require('../sum');
        jest.resetModules();
        const sum2 = require('../sum');
        expect(sum1).not.toBe(sum2);
-   });
+    });
 });
 
 describe('toMatchSnapshot', () => {
@@ -495,7 +583,7 @@ describe('beforeEach with timeout', () => {
 class TestApi {
     constructor() { }
     testProp: boolean;
-    private anotherProp: string;
+    private readonly anotherProp: string;
     testMethod(a: number): string { return ""; }
 }
 
@@ -615,6 +703,22 @@ describe('rejects', () => {
     });
 });
 
+// https://facebook.github.io/jest/docs/en/expect.html#tohavepropertykeypath-value
+describe('toHaveProperty', () => {
+    it('it accepts a keyPath as string', () => {
+        expect({ a: { b: {}}}).toHaveProperty('a');
+    });
+    it('it accepts a keyPath as string with dot notation', () => {
+        expect({ a: { b: {}}}).toHaveProperty('a.b');
+    });
+    it('it accepts a keyPath as an array', () => {
+      expect({ a: { b: {}}}).toHaveProperty(['a', 'b']);
+    });
+    it('it accepts a keyPath as an array containing non-string values', () => {
+      expect({ a: ['b']}).toHaveProperty(['a', 0]);
+    });
+});
+
 class MyTransformer implements jest.Transformer {
     process(text: string, path: string) {
         return `
@@ -650,3 +754,31 @@ test('moduleName 2', () => {
     const moduleName = require('../moduleName');
     expect(moduleName()).toEqual(2);
 });
+
+describe('toHaveBeenNthCalledWith', () => {
+    const fn = jest.fn();
+
+    expect(fn).toHaveBeenNthCalledWith(3, "foo");
+});
+
+// Jest config
+{
+interface JestConfigModule {defaults: jest.DefaultOptions; }
+// tslint:disable-next-line:no-var-requires
+const {defaults} = require('jest-config') as JestConfigModule;
+
+const config: jest.InitialOptions = {
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest'
+  },
+  testMatch: [
+    ...defaults.testMatch,
+    '**/__tests__/**/*.ts?(x)',
+    '**/?(*.)+(spec|test).ts?(x)'
+  ],
+  moduleFileExtensions: [...defaults.moduleFileExtensions, 'ts', 'tsx'],
+  globals: {
+    'ts-jest': {}
+  }
+};
+}
